@@ -1,0 +1,37 @@
+@charset "UTF-8";
+
+/* Change Status Toggler Css */
+.change-status, .vendor-change-status, .site-change-status{
+    font-size: 20px;
+    opacity: 0.5;
+}
+.change-status .tgle-on, .vendor-change-status .tgle-on, .site-change-status .tgle-on{
+    color: green;
+}
+.change-status .tgle-off, .vendor-change-status .tgle-off, .site-change-status .tgle-off{
+    color: red;
+}
+#submit-btn:disabled {
+    cursor: not-allowed;
+}
+
+/* Password View */
+.pass-show{
+    position: absolute;
+    top: 4px;
+    font-size: 16px;
+    right: 15px;
+    cursor: pointer;
+}
+.input-box{
+    position: relative;
+}
+tbody td
+{
+    vertical-align:middle;
+}
+.scrollable-cell {
+    max-height: 100px;
+    overflow: auto;
+    white-space: pre-line;
+}
