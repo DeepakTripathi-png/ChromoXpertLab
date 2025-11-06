@@ -330,7 +330,7 @@ class BranchController extends Controller
                             'mobile' => $request->mobile,
                             'address' => $request->address,
                             'type' => 'branch', // Hardcoded 'branch' in users table
-                            'role_id' => 1,
+                            'role_id' => 7,
                             'modified_by' => $currentUserId,
                             'modified_ip_address' => $currentIp,
                         ];
@@ -363,7 +363,7 @@ class BranchController extends Controller
                         'mobile' => $request->mobile,
                         'address' => $request->address,
                         'status' => 'active',
-                        'role_id' => null,
+                        'role_id' => 7,
                         'created_by' => $currentUserId,
                         'created_ip_address' => $currentIp,
                     ];
@@ -413,9 +413,11 @@ class BranchController extends Controller
                 })
 
                 ->addColumn('type', function ($row) {
-                    return !empty($row->type) ? ucfirst($row->type): '';
+                    if (!empty($row->type)) {
+                        return ucwords(str_replace('_', ' ', $row->type));
+                    }
+                    return '';
                 })
-                
 
                 ->addColumn('branch_name', function ($row) {
                     return !empty($row->branch_name) ? $row->branch_name : '';
@@ -501,6 +503,7 @@ class BranchController extends Controller
 
                     return $actionBtn;
                 })
+                
 
                 ->rawColumns(['branch_logo', 'status', 'action'])
                 ->make(true);

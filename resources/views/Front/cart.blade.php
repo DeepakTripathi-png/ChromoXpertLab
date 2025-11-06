@@ -9,67 +9,26 @@
 
       <!-- CART ITEMS -->
       <div id="cart-items" class="lg:col-span-2 space-y-6">
-        <h2 class="text-3xl font-bold text-[#6483B9] mb-6">Your Selected Tests</h2>
+          <h2 class="text-3xl font-bold text-[#6483B9] mb-6">Your Selected Tests</h2>
 
-        <!-- Single Cart Item -->
-        <div
-          class="cart-item relative bg-white rounded-2xl shadow hover:shadow-lg transition-all p-6 border border-gray-100"
-        >
-          <button
-            class="absolute top-3 right-4 text-red-500 hover:text-red-700 transition remove-item"
-            title="Remove"
-          >
-            <i class="fa-solid fa-trash text-lg"></i>
-          </button>
-          <h3 class="font-semibold text-lg text-gray-900">Dirofilaria immitis PCR Test</h3>
-          <p class="text-sm text-gray-600 mt-1">
-            Detecting Dirofilaria immitis in canine blood samples.Detecting Dirofilaria
-            immitis in canine blood samples.Detecting Dirofilaria immitis in canine blood
-            samples.Detecting Dirofilaria immitis in canine blood samples.
-          </p>
-          <p class="text-xs mt-2 text-gray-400">Sample Type: Blood</p>
-          <div class="mt-3 flex justify-end items-center gap-2">
-            <span class="line-through text-gray-400 text-sm">₹2400</span>
-            <span class="text-green-600 font-semibold text-lg">₹2200</span>
-          </div>
-        </div>
-
-        <div
-          class="cart-item relative bg-white rounded-2xl shadow hover:shadow-lg transition-all p-6 border border-gray-100"
-        >
-          <button
-            class="absolute top-3 right-4 text-red-500 hover:text-red-700 transition remove-item"
-            title="Remove"
-          >
-            <i class="fa-solid fa-trash text-lg"></i>
-          </button>
-          <h3 class="font-semibold text-lg text-gray-900">Canine Blood Parasite PCR Panel</h3>
-          <p class="text-sm text-gray-600 mt-1">Detects blood-borne infections and pathogens.</p>
-          <p class="text-xs mt-2 text-gray-400">Sample Type: Blood</p>
-          <div class="mt-3 flex justify-end items-center gap-2">
-            <span class="line-through text-gray-400 text-sm">₹2400</span>
-            <span class="text-green-600 font-semibold text-lg">₹2100</span>
-          </div>
-        </div>
-
-        <div
-          class="cart-item relative bg-white rounded-2xl shadow hover:shadow-lg transition-all p-6 border border-gray-100"
-        >
-          <button
-            class="absolute top-3 right-4 text-red-500 hover:text-red-700 transition remove-item"
-            title="Remove"
-          >
-            <i class="fa-solid fa-trash text-lg"></i>
-          </button>
-          <h3 class="font-semibold text-lg text-gray-900">Canine Viral PCR Panel</h3>
-          <p class="text-sm text-gray-600 mt-1">Detects viral pathogens in dogs.</p>
-          <p class="text-xs mt-2 text-gray-400">Sample Type: Blood</p>
-          <div class="mt-3 flex justify-end items-center gap-2">
-            <span class="line-through text-gray-400 text-sm">₹2400</span>
-            <span class="text-green-600 font-semibold text-lg">₹2300</span>
-          </div>
-        </div>
+          @forelse($cartItems as $item)
+              <div class="cart-item relative bg-white rounded-2xl shadow hover:shadow-lg transition-all p-6 border border-gray-100" data-id="{{ $item->id }}" data-price="{{ $item->test->total_price }}">
+                  <button class="absolute top-3 right-4 text-red-500 hover:text-red-700 transition remove-item" title="Remove">
+                      <i class="fa-solid fa-trash text-lg"></i>
+                  </button>
+                  <h3 class="font-semibold text-lg text-gray-900">{{ $item->test->name }}</h3>
+                  <p class="text-sm text-gray-600 mt-1">{{ $item->test->description }}</p>
+                  <p class="text-xs mt-2 text-gray-400">Sample Type: {{ $item->test->sample_type }}</p>
+                  <div class="mt-3 flex justify-end items-center gap-2">
+                      <!--<span class="line-through text-gray-400 text-sm">₹{{ $item->test->mrp }}</span>-->
+                      <span class="text-green-600 font-semibold text-lg">₹{{ $item->price }}</span>
+                  </div>
+              </div>
+          @empty
+              <p class="text-gray-500">Your cart is empty.</p>
+          @endforelse
       </div>
+
 
       <!-- SUMMARY -->
       <aside class="space-y-6">
@@ -103,16 +62,16 @@
         <div class="bg-white shadow rounded-2xl p-6">
           <h3 class="font-semibold mb-4 text-[#6483B9] text-lg">Payment Summary</h3>
 
-          <div class="text-sm text-gray-700 space-y-2">
-            <div class="flex justify-between"><span>MRP</span><span>₹6700</span></div>
-            <div class="flex justify-between"><span>Discount</span><span>- ₹100</span></div>
-            <div class="flex justify-between"><span>Delivery Charges</span><span>₹50</span></div>
-            <div class="flex justify-between"><span>Sample Collection</span><span>₹50</span></div>
-            <hr class="my-2">
-            <div class="flex justify-between font-semibold text-lg text-gray-900">
-              <span>Total</span><span>₹6700</span>
-            </div>
-          </div>
+          <div class="payment-summary">
+    <div class="flex justify-between"><span>MRP</span><span id="summary-mrp">₹0</span></div>
+    <div class="flex justify-between"><span>Discount</span><span id="summary-discount">- ₹0</span></div>
+    <div class="flex justify-between"><span>Delivery Charges</span><span id="summary-delivery">₹50</span></div>
+    <div class="flex justify-between"><span>Sample Collection</span><span id="summary-sample">₹50</span></div>
+    <hr class="my-2">
+    <div class="flex justify-between font-semibold text-lg text-gray-900">
+        <span>Total</span><span id="summary-total">₹0</span>
+    </div>
+</div>
 
           <div class="mt-5 space-y-2 text-sm">
             <label class="flex items-center gap-2 cursor-pointer">

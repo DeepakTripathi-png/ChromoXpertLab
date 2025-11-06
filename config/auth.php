@@ -52,6 +52,10 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+        'petparent' =>[
+            'driver' => 'session',
+            'provider' => 'users',
+        ]
     ],
 
     /*

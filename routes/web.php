@@ -43,9 +43,11 @@ use App\Http\Controllers\Admin\Sample\SampleController;
 use App\Http\Controllers\Branch\Sample\BranchSampleController;
 use App\Http\Controllers\Doctor\Notification\DoctorNotificationController;
 use App\Http\Controllers\Doctor\Report\DoctorReportController;
+use App\Http\Controllers\Front\HomeController;
 use App\Http\Controllers\Front\Auth\RegisterController;
 use App\Http\Controllers\Front\Auth\UserLoginController;
 use App\Http\Controllers\Front\TestController;
+use App\Http\Controllers\Front\CartController;
 
 // Utility Routes
 Route::get('/linkstorage', function () {
@@ -65,10 +67,10 @@ Route::get('/clear', function () {
 
 //Front End Routes
 
-Route::get('/', function (){
-    return view('Front.home');
-});
+Route::get('/', [HomeController::class, 'index'])->name('front.home');
 
+
+Route::get('/front/cart-count', [HomeController::class, 'getCartCount']);
 
 Route::prefix('front')->group(function () {
     Route::post('/register', [RegisterController::class, 'register'])->name('front.register');
@@ -82,11 +84,13 @@ Route::get('/front/userlog-out', [UserLoginController::class, 'logout'])->name('
 Route::get('/front/tests', [TestController::class, 'index'])->name('front.tests');
 Route::get('/front/check-login', function () {
     return response()->json(['loggedIn' => auth()->check()]);
+    //return response()->json(['loggedIn' => Auth::guard('petparent')->check()]);
 });
-Route::get('/cart', function (){
-    return view('Front.cart');
-});
+Route::post('/front/add-to-cart', [CartController::class, 'addToCart'])->name('front.add-to-cart');
 
+Route::get('/cart', [CartController::class, 'index'])->name('front.cart');
+
+Route::delete('/cart/remove/{id}', [CartController::class, 'remove'])->middleware('auth');
 Route::get('/edit-profile', function (){
     return view('Front.edit_profile');
 });
@@ -122,6 +126,7 @@ Route::get('/termsandcondition', function (){
 });
 
 //Front end Routes
+
 
 
 
@@ -289,6 +294,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['prevent-back-history', 'aut
         Route::post('/reports/sign/{code}', 'signReport')->name('reports.sign');
         Route::post('/reports/approve/{code}','approveReport')->name('reports.approve');
         Route::post('/reports/reject/{code}','rejectReport')->name('reports.reject');
+        Route::post('/reports/reopen/{code}', 'reopenReport')->name('reports.reopen');
 
 
         
@@ -576,6 +582,9 @@ Route::group(['prefix' => 'branch', 'middleware' => ['auth:branch', 'role:branch
             Route::delete('/sample-collections/{id}/delete', 'delete')->name('branch.sample.delete');
             // Additional AJAX Route
             Route::get('/sample/get-appointment/{id}', 'getAppointment')->name('branch.sample.getAppointment');
+
+             Route::post('sample/{id}/status', 'updateStatus')->name('samples.updateStatus');
+             Route::get('sample/{id}/logs', 'getLogs')->name('samples.getLogs');
         });
 
 

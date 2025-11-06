@@ -1,11 +1,70 @@
 // Delete item on click
+   document.addEventListener('DOMContentLoaded', () => {
+
+    // ✅ Handle Remove Item Buttons
     document.querySelectorAll('.remove-item').forEach(btn => {
-      btn.addEventListener('click', function() {
-        const item = this.closest('.cart-item');
-        item.classList.add('opacity-0', 'scale-95', 'transition-all');
-        setTimeout(() => item.remove(), 300);
-      });
+        btn.addEventListener('click', async function() {
+            const cartItem = this.closest('.cart-item');   // div of the item
+            const cartId = cartItem.dataset.id;            // get cart item ID
+
+            if (!cartId) return;
+
+            try {
+                const res = await fetch(`/cart/remove/${cartId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json'
+                    }
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    cartItem.remove(); // remove from DOM
+
+                    // ✅ Update cart count
+                    if (window.updateCartCount) {
+                        window.updateCartCount(data.cartCount);
+                    }
+
+                    // ✅ Update payment summary
+                    updatePaymentSummary();
+
+                } else {
+                    alert(data.message || 'Failed to remove item.');
+                }
+            } catch (error) {
+                console.error('Error removing item:', error);
+                alert('Network error. Please try again.');
+            }
+        });
     });
+
+    // Call this on page load
+    updatePaymentSummary();
+});
+
+function updatePaymentSummary() {
+    const items = document.querySelectorAll('.cart-item');
+    let mrp = 0;
+
+    items.forEach(item => {
+        mrp += parseFloat(item.dataset.price) || 0;
+    });
+
+    const discount = 0; // change if needed
+    const delivery = 50;
+    const sample = 50;
+    const total = mrp - discount + delivery + sample;
+
+    document.getElementById('summary-mrp').textContent = `₹${mrp.toFixed(2)}`;
+    document.getElementById('summary-discount').textContent = `- ₹${discount.toFixed(2)}`;
+    document.getElementById('summary-delivery').textContent = `₹${delivery.toFixed(2)}`;
+    document.getElementById('summary-sample').textContent = `₹${sample.toFixed(2)}`;
+    document.getElementById('summary-total').textContent = `₹${total.toFixed(2)}`;
+}
+
 // Address Modal Logic
     const addAddressModal = document.getElementById('addAddressModal');
     const addAddressBtn = document.getElementById('addAddressBtn');
@@ -118,13 +177,13 @@
     });
     /* Start Smooth Behaviour of SPA Link from this Pages */
     document.querySelectorAll('a[href*="#"]').forEach(link => {
-      link.addEventListener('click', e => {
-        e.preventDefault();
-        const href = link.getAttribute('href');
-        const hash = href.split('#')[1];
-        // store the section name before redirect
-        localStorage.setItem('scrollToSection', hash);
-        window.location.href = '/';
-      });
+        link.addEventListener('click', e => {
+          e.preventDefault();
+          const href = link.getAttribute('href');
+          const hash = href.split('#')[1];
+          // store the section name before redirect
+          localStorage.setItem('scrollToSection', hash);
+          window.location.href = '/';
+        });
     });
     /* End Smooth Behaviour of SPA Link from this Pages */

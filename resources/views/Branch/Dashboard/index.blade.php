@@ -138,7 +138,18 @@
                 <div class="col-12">
                     <div class="card">
                         <div class="card-body">
-                            <h4 class="header-title mt-0 mb-3">Branch Dashboard</h4>
+                            <h4 class="header-title mt-0 mb-3">
+                                
+                                @if(!empty($type) && $type == 'branch')
+                                    Branch
+                                @elseif(!empty($type) && $type == 'hospital')
+                                    Hospital
+                                @elseif(!empty($type) && $type == 'admin')
+                                    Collection Center
+                                @endif
+
+                                
+                                Dashboard</h4>
                             <p>Welcome, {{ Auth::guard('branch')->user()->name }}!</p>
                             @php
                                 $privileges = explode(',', Auth::guard('branch')->user()->role->privileges ?? '');
@@ -226,6 +237,7 @@
             </div>
 
             <!-- Revenue Graph -->
+            @if(!empty($type) && $type == 'branch')
             <div class="row">
                 <div class="col-xl-12">
                     <div class="card">
@@ -249,6 +261,7 @@
                     </div>
                 </div>
             </div>
+            @endif
 
             <!-- Latest Appointments and Reports -->
             <div class="row">

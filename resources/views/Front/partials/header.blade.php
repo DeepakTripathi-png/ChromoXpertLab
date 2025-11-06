@@ -33,7 +33,9 @@
                         <path stroke-linecap="round" stroke-linejoin="round"
                             d="M2.25 2.25h1.386c.51 0 .954.34 1.09.832L5.94 7.5h12.12a.75.75 0 0 1 .73.948l-1.8 6a.75.75 0 0 1-.73.552H8.1m0 0L6.48 4.5m1.62 10.5a2.25 2.25 0 1 0 0 4.5 2.25 2.25 0 0 0 0-4.5Zm8.25 2.25a2.25 2.25 0 1 1 4.5 0 2.25 2.25 0 0 1-4.5 0Z" />
                     </svg>
-                    <span class="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[11px] rounded-full px-[5px] py-[1px] shadow-sm">2</span>
+                    <span id="cart-count-desktop" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-semibold rounded-full px-1.5 opacity-0 transition-opacity duration-300">
+                        0
+                    </span>
                 </a>
             @else
                 <!-- 🚪 Show only when not logged in -->
@@ -79,7 +81,9 @@
                         <path stroke-linecap="round" stroke-linejoin="round"
                             d="M2.25 2.25h1.386c.51 0 .954.34 1.09.832L5.94 7.5h12.12a.75.75 0 0 1 .73.948l-1.8 6a.75.75 0 0 1-.73.552H8.1m0 0L6.48 4.5m1.62 10.5a2.25 2.25 0 1 0 0 4.5 2.25 2.25 0 0 0 0-4.5Zm8.25 2.25a2.25 2.25 0 1 1 4.5 0 2.25 2.25 0 0 1-4.5 0Z" />
                     </svg>
-                    <span class="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[11px] rounded-full px-[5px] py-[1px] shadow-sm">2</span>
+                    <span id="cart-count-mobile" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-semibold rounded-full px-1.5 opacity-0 transition-opacity duration-300">
+                        0
+                    </span>
                 </a>
             @else
                 <button class="open-login-btn bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-semibold hover:bg-blue-700 transition">

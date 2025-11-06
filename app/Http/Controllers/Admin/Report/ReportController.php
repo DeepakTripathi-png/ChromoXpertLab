@@ -193,312 +193,337 @@ class ReportController extends Controller
     }
 
 
+    public function data_table(Request $request)
+    {
+        $reports = TestResults::with([
+                'appointment.pet.petparent',
+                'test',
+                'assignedDoctor'  // Eager load assigned doctor
+            ])
+            ->select('test_results.*') 
+            ->join('appointments', 'test_results.appointment_id', '=', 'appointments.id') 
+            ->orderBy('test_results.created_at', 'DESC') 
+            ->get()
+            ->groupBy('test_result_code')
+            ->map(function($group) {
+                $first = $group->first();
+                $tests = $group->pluck('test')->filter()->values();
 
-        public function data_table(Request $request)
-        {
-            $reports = TestResults::with([
-                    'appointment.pet.petparent',
-                    'test',
-                    'assignedDoctor'  // Eager load assigned doctor
-                ])
-                ->select('test_results.*') 
-                ->join('appointments', 'test_results.appointment_id', '=', 'appointments.id') 
-                ->orderBy('test_results.created_at', 'DESC') 
-                ->get()
-                ->groupBy('test_result_code')
-                ->map(function($group) {
-                    $first = $group->first();
-                    $tests = $group->pluck('test')->filter()->values();
+                return (object)[
+                    'test_result_code' => $first->test_result_code,
+                    'appointment'      => $first->appointment,
+                    'tests'            => $tests,
+                    'status'           => $first->status,
+                    'created_at'       => $first->created_at, 
+                    'assigned_doctor'  => $first->assignedDoctor ? $first->assignedDoctor->doctor_name : 'Not Assigned',
+                ];
+            })
+            ->values();
 
-                    return (object)[
-                        'test_result_code' => $first->test_result_code,
-                        'appointment'      => $first->appointment,
-                        'tests'            => $tests,
-                        'status'           => $first->status,
-                        'created_at'       => $first->created_at, 
-                        'assigned_doctor'  => $first->assignedDoctor ? $first->assignedDoctor->doctor_name : 'Not Assigned',
-                    ];
+        if ($request->ajax()) {
+            return DataTables::of($reports)
+                ->addIndexColumn()
+                ->addColumn('test_result_code', function ($row) {
+                    return $row->test_result_code ?? '';
                 })
-                ->values();
+                ->addColumn('pet_code', function ($row) {
+                    return $row->appointment->pet->pet_code ?? '';
+                })
+                ->addColumn('pet_name', function ($row) {
+                    return $row->appointment->pet->name ?? '';
+                })
+                ->addColumn('pet_parent', function ($row) {
+                    return $row->appointment->pet->petparent->name ?? '';
+                })
+                ->addColumn('pet_parent_mobile', function ($row) {
+                    return $row->appointment->pet->petparent->mobile ?? '';
+                })
+                ->addColumn('tests', function ($row) {
+                    $tests = $row->tests->map(function($test) {
+                        return '<li>' . ($test->name ?? '') . '</li>';
+                    })->implode('');
 
-            if ($request->ajax()) {
-                return DataTables::of($reports)
-                    ->addIndexColumn()
-                    ->addColumn('test_result_code', function ($row) {
-                        return $row->test_result_code ?? '';
-                    })
-                    ->addColumn('pet_code', function ($row) {
-                        return $row->appointment->pet->pet_code ?? '';
-                    })
-                    ->addColumn('pet_name', function ($row) {
-                        return $row->appointment->pet->name ?? '';
-                    })
-                    ->addColumn('pet_parent', function ($row) {
-                        return $row->appointment->pet->petparent->name ?? '';
-                    })
-                    ->addColumn('pet_parent_mobile', function ($row) {
-                        return $row->appointment->pet->petparent->mobile ?? '';
-                    })
-                    ->addColumn('tests', function ($row) {
-                        $tests = $row->tests->map(function($test) {
-                            return '<li>' . ($test->name ?? '') . '</li>';
-                        })->implode('');
+                    return '<ul style="padding-left: 20px; margin:0;">' . $tests . '</ul>';
+                })
+                ->addColumn('appointment_datetime', function ($row) {
+                    if (!empty($row->appointment->appointment_date) && !empty($row->appointment->appointment_time)) {
+                        $datetime = $row->appointment->appointment_date . ' ' . $row->appointment->appointment_time;
+                        return \Carbon\Carbon::parse($datetime)->format('d M Y h:i A');
+                    }
+                    return '';
+                }) 
 
-                        return '<ul style="padding-left: 20px; margin:0;">' . $tests . '</ul>';
-                    })
-                    ->addColumn('appointment_datetime', function ($row) {
-                        if (!empty($row->appointment->appointment_date) && !empty($row->appointment->appointment_time)) {
-                            $datetime = $row->appointment->appointment_date . ' ' . $row->appointment->appointment_time;
-                            return \Carbon\Carbon::parse($datetime)->format('d M Y h:i A');
-                        }
-                        return '';
-                    }) 
+                ->addColumn('status', function ($row) {
+                        $status = strtolower(trim($row->status)); // Normalize
 
-                   ->addColumn('status', function ($row) {
-                            $status = strtolower(trim($row->status)); // Normalize
-
-                            switch ($status) {
-                                case 'completed':
-                                    $class = 'badge bg-success'; // green
-                                    break;
-                                case 'pending':
-                                    $class = 'badge bg-warning text-dark'; // yellow
-                                    break;
-                                case 'approved':
-                                    $class = 'badge bg-primary'; // blue
-                                    break;
-                                case 'rejected':
-                                    $class = 'badge bg-danger'; // red
-                                    break;
-                                default:
-                                    $class = 'badge bg-light text-dark'; // default light gray
-                                    break;
-                            }
-
-                            return '<span class="' . $class . '">' . ucfirst($row->status ?? '-') . '</span>';
-                        })
-
-
-
-
-                    ->rawColumns(['status'])
-
-                    // ->addColumn('done', function ($row) {
-                    //     return $row->done ?? '-';
-                    // })
-                    // ->addColumn('signed', function ($row) {
-                    //     return !empty($row->signed_by_id) ? 'Yes' : 'No';
-                    // })
-                    
-                    ->addColumn('assigned_doctor', function ($row) {
-                        return $row->assigned_doctor ?? 'Not Assigned';
-                    })
-
-
-
-                    ->addColumn('action', function ($row) {
-                        $actionBtn = '';
-                        $role_id = Auth::guard('master_admins')->user()->role_id;
-                        $RolesPrivileges = Role_privilege::where('status', 'active')
-                            ->where('id', $role_id)
-                            ->select('privileges')
-                            ->first();
-
-                        $id = $row->test_result_code; // use test_result_code as identifier
-
-
-                        // Assign Doctor button
-                        if (!empty($RolesPrivileges) && str_contains($RolesPrivileges->privileges, 'reports_view')) {
-                            $actionBtn .= '<button type="button" 
-                                                class="btn btn-icon btn-secondary assign-doctor-btn me-1"
-                                                title="Assign Doctor" 
-                                                data-id="' . $row->test_result_code . '"
-                                                style="background:#fff; color:#6f42c1; border:1px solid #6f42c1;">
-                                                <i class="mdi mdi-account-plus"></i>
-                                            </button>';
+                        switch ($status) {
+                            case 'completed':
+                                $class = 'badge bg-success'; // green
+                                break;
+                            case 'pending':
+                                $class = 'badge bg-warning text-dark'; // yellow
+                                break;
+                            case 'approved':
+                                $class = 'badge bg-primary'; // blue
+                                break;
+                            case 'rejected':
+                                $class = 'badge bg-danger'; // red
+                                break;
+                            default:
+                                $class = 'badge bg-light text-dark'; // default light gray
+                                break;
                         }
 
+                        return '<span class="' . $class . '">' . ucfirst($row->status ?? '-') . '</span>';
+                    })
 
-                        // View button
-                        if (!empty($RolesPrivileges) && str_contains($RolesPrivileges->privileges, 'reports_view')) {
-                            $actionBtn .= '<a href="' . url('admin/reports/view/' . $id) . '" 
-                                        class="btn btn-icon btn-info me-1" 
-                                        title="View Branch" 
+
+
+
+                ->rawColumns(['status'])
+
+                // ->addColumn('done', function ($row) {
+                //     return $row->done ?? '-';
+                // })
+                // ->addColumn('signed', function ($row) {
+                //     return !empty($row->signed_by_id) ? 'Yes' : 'No';
+                // })
+                
+                ->addColumn('assigned_doctor', function ($row) {
+                    return $row->assigned_doctor ?? 'Not Assigned';
+                })
+
+
+
+                ->addColumn('action', function ($row) {
+                    $actionBtn = '';
+                    $role_id = Auth::guard('master_admins')->user()->role_id;
+                    $RolesPrivileges = Role_privilege::where('status', 'active')
+                        ->where('id', $role_id)
+                        ->select('privileges')
+                        ->first();
+
+                    $id = $row->test_result_code; // use test_result_code as identifier
+
+
+                    // Assign Doctor button
+                    // if (!empty($RolesPrivileges) && str_contains($RolesPrivileges->privileges, 'reports_view')) {
+                    //     $actionBtn .= '<button type="button" 
+                    //                         class="btn btn-icon btn-secondary assign-doctor-btn me-1"
+                    //                         title="Assign Doctor" 
+                    //                         data-id="' . $row->test_result_code . '"
+                    //                         style="background:#fff; color:#6f42c1; border:1px solid #6f42c1;">
+                    //                         <i class="mdi mdi-account-plus"></i>
+                    //                     </button>';
+                    // }
+
+
+                    // View button
+                    if (!empty($RolesPrivileges) && str_contains($RolesPrivileges->privileges, 'reports_view')) {
+                        $actionBtn .= '<a href="' . url('admin/reports/view/' . $id) . '" 
+                                    class="btn btn-icon btn-info me-1" 
+                                    title="View Branch" 
+                                    data-bs-toggle="tooltip" 
+                                    style="background:#fff; color:#6267ae; border:1px solid #6267ae;">
+                                    <i class="mdi mdi-eye"></i>
+                                </a>';
+                    }
+
+
+                        // Approve Report button
+                    if (!empty($RolesPrivileges) && str_contains($RolesPrivileges->privileges, 'reports_view')) {
+                        $actionBtn .= '<button type="button"
+                                            class="btn btn-icon btn-success me-1 approve-btn"
+                                            title="Approve Report"
+                                            data-bs-toggle="tooltip"
+                                            data-id="' . $id . '"
+                                            style="background:#fff; color:#198754; border:1px solid #198754;">
+                                            <i class="mdi mdi-check-circle-outline"></i>
+                                        </button>';
+                    }
+
+                    // Reject Report button
+                    if (!empty($RolesPrivileges) && str_contains($RolesPrivileges->privileges, 'reports_view')) {
+                        $actionBtn .= '<button type="button"
+                                            class="btn btn-icon btn-danger me-1 reject-btn"
+                                            title="Reject Report"
+                                            data-bs-toggle="tooltip"
+                                            data-id="' . $id . '"
+                                            style="background:#fff; color:#dc3545; border:1px solid #dc3545;">
+                                            <i class="mdi mdi-close-circle-outline"></i>
+                                        </button>';
+                    }
+
+
+                    // Edit button
+                    if (!empty($RolesPrivileges) && str_contains($RolesPrivileges->privileges, 'reports_view')) {
+                        $actionBtn .= '<a href="' . url('admin/generate-reports/' . $id) . '" 
+                                        class="btn btn-icon btn-warning me-1" 
+                                        title="Edit Pet Parent" 
                                         data-bs-toggle="tooltip" 
-                                        style="background:#fff; color:#6267ae; border:1px solid #6267ae;">
-                                        <i class="mdi mdi-eye"></i>
+                                        style="background:#fff; color:#f6b51d; border:1px solid #f6b51d;">
+                                        <i class="mdi mdi-pencil"></i>
                                     </a>';
-                        }
+                    }
 
-
-                         // Approve Report button
+                    // Sign Report button
                         if (!empty($RolesPrivileges) && str_contains($RolesPrivileges->privileges, 'reports_view')) {
                             $actionBtn .= '<button type="button"
-                                                class="btn btn-icon btn-success me-1 approve-btn"
-                                                title="Approve Report"
+                                                class="btn btn-icon btn-success me-1 sign-btn"
+                                                title="Sign Report"
                                                 data-bs-toggle="tooltip"
                                                 data-id="' . $id . '"
-                                                style="background:#fff; color:#198754; border:1px solid #198754;">
-                                                <i class="mdi mdi-check-circle-outline"></i>
-                                            </button>';
-                        }
-
-                        // Reject Report button
-                        if (!empty($RolesPrivileges) && str_contains($RolesPrivileges->privileges, 'reports_view')) {
-                            $actionBtn .= '<button type="button"
-                                                class="btn btn-icon btn-danger me-1 reject-btn"
-                                                title="Reject Report"
-                                                data-bs-toggle="tooltip"
-                                                data-id="' . $id . '"
-                                                style="background:#fff; color:#dc3545; border:1px solid #dc3545;">
-                                                <i class="mdi mdi-close-circle-outline"></i>
+                                                style="background:#fff; color:#28a745; border:1px solid #28a745;">
+                                                <i class="mdi mdi-signature-text"></i>
                                             </button>';
                         }
 
 
-                        // Edit button
-                        if (!empty($RolesPrivileges) && str_contains($RolesPrivileges->privileges, 'reports_view')) {
-                            $actionBtn .= '<a href="' . url('admin/generate-reports/' . $id) . '" 
-                                            class="btn btn-icon btn-warning me-1" 
-                                            title="Edit Pet Parent" 
-                                            data-bs-toggle="tooltip" 
-                                            style="background:#fff; color:#f6b51d; border:1px solid #f6b51d;">
-                                            <i class="mdi mdi-pencil"></i>
-                                        </a>';
-                        }
+        
 
-                        // Sign Report button
-                            if (!empty($RolesPrivileges) && str_contains($RolesPrivileges->privileges, 'reports_view')) {
-                                $actionBtn .= '<button type="button"
-                                                    class="btn btn-icon btn-success me-1 sign-btn"
-                                                    title="Sign Report"
-                                                    data-bs-toggle="tooltip"
-                                                    data-id="' . $id . '"
-                                                    style="background:#fff; color:#28a745; border:1px solid #28a745;">
-                                                    <i class="mdi mdi-signature-text"></i>
-                                                </button>';
-                            }
+                    // Print Barcode button
+                    if (!empty($RolesPrivileges) && str_contains($RolesPrivileges->privileges, 'reports_view')) {
+                    $actionBtn .= '<button type="button" 
+                            class="btn btn-icon btn-primary print-barcode-btn me-1" 
+                            title="Print Barcode" 
+                            data-bs-toggle="tooltip"
+                            data-appointment-id="' . $row->appointment->id . '"
+                            style="background:#fff; color:#000; border:1px solid #000;">
+                            <i class="mdi mdi-barcode"></i>
+                        </button>';
+
+                    }
 
 
-            
-
-                        // Print Barcode button
-                        if (!empty($RolesPrivileges) && str_contains($RolesPrivileges->privileges, 'reports_view')) {
-                        $actionBtn .= '<button type="button" 
-                                class="btn btn-icon btn-primary print-barcode-btn me-1" 
-                                title="Print Barcode" 
-                                data-bs-toggle="tooltip"
-                                data-appointment-id="' . $row->appointment->id . '"
-                                style="background:#fff; color:#000; border:1px solid #000;">
-                                <i class="mdi mdi-barcode"></i>
-                            </button>';
-
-                        }
+                    return $actionBtn;
+                })
 
 
-                        return $actionBtn;
-                    })
+                
+                ->rawColumns(['action', 'tests','status'])
+                ->make(true);
+        }
+    }
 
 
-                    
-                    ->rawColumns(['action', 'tests','status'])
-                    ->make(true);
-            }
+    public function assignDoctor(Request $request, $code)
+    {
+        $request->validate([
+            'doctor_id' => 'required|exists:internal_doctors,id',
+        ]);
+
+        // Get all reports with same test_result_code
+        $reports = TestResults::where('test_result_code', $code)->get();
+
+        if ($reports->isEmpty()) {
+            return response()->json(['message' => 'Report not found.'], 404);
         }
 
-        public function assignDoctor(Request $request, $code)
-        {
-            $request->validate([
-                'doctor_id' => 'required|exists:internal_doctors,id',
-            ]);
-
-            // Get all reports with same test_result_code
-            $reports = TestResults::where('test_result_code', $code)->get();
-
-            if ($reports->isEmpty()) {
-                return response()->json(['message' => 'Report not found.'], 404);
-            }
-
-            foreach ($reports as $report) {
-                $report->assigned_to_doctor_id = $request->doctor_id; // ✅ Correct column name
-                $report->assigned_by = Auth::id();
-                $report->assigned_at = now();
-                $report->save();
-            }
-
-            return response()->json(['message' => 'Doctor assigned successfully!']);
+        foreach ($reports as $report) {
+            $report->assigned_to_doctor_id = $request->doctor_id; // ✅ Correct column name
+            $report->assigned_by = Auth::id();
+            $report->assigned_at = now();
+            $report->save();
         }
 
-
-        // Method for signing reports (for pending reports; updates to completed after signing)
-            public function signReport($code)
-            {
-                $reports = TestResults::where('test_result_code', $code)
-                    ->where('status', 'approved')  
-                    ->where('admin_approved', 1)  
-                    ->get();
-
-                if ($reports->isEmpty()) {
-                    return response()->json(['success' => false, 'message' => 'Report not found or not eligible for signing (must be pending and approved).'], 404);
-                }
-
-                $adminId = Auth::guard('master_admins')->id();
-      
-                foreach ($reports as $report) {
-                    $report->signed_by_id = Auth::id();
-                    $report->signed_date = now();
-                    $report->status = 'completed';  
-                    $report->save();
-                }
-
-                return response()->json(['success' => true, 'message' => 'Report signed and completed successfully!']);
-            }
+        return response()->json(['message' => 'Doctor assigned successfully!']);
+    }
 
 
-            // ✅ Approve Report
-            public function approveReport($code)
-            {
-                $reports = TestResults::where('test_result_code', $code)
-                    ->whereIn('status', ['pending','rejected'])
-                    ->get();
+   // ✅ Approve Report
+public function approveReport($code)
+{
+    $reports = TestResults::where('test_result_code', $code)
+        ->whereIn('status', ['pending', 'rejected'])
+        ->get();
 
-                if ($reports->isEmpty()) {
-                    return response()->json(['success' => false, 'message' => 'Report not found or already processed.'], 404);
-                }
+    if ($reports->isEmpty()) {
+        return response()->json(['success' => false, 'message' => 'Report not found or already processed.'], 404);
+    }
 
-                foreach ($reports as $report) {
-                    $report->admin_approved = 1;
-                    // $report->admin_approved_by = Auth::guard('master_admins')->id();
-                    // $report->admin_approved_at = now();
-                    $report->status = 'approved';
-                    $report->save();
-                }
+    foreach ($reports as $report) {
+        $report->admin_approved = 1;
+        $report->admin_approved_by = Auth::guard('master_admins')->id();
+        $report->admin_approved_at = now();
+        $report->status = 'approved';
+        $report->rejection_reason = null; // clear if previously rejected
+        $report->save();
+    }
 
-                return response()->json(['success' => true, 'message' => 'Report approved successfully!']);
-            }
+    return response()->json(['success' => true, 'message' => 'Report approved successfully!']);
+}
 
+// ❌ Reject Report (with reason)
+public function rejectReport(Request $request, $code)
+{
+    $request->validate([
+        'reason' => 'required|string|max:1000',
+    ]);
 
-        // Reject Report
-            public function rejectReport($code)
-            {
-                $reports = TestResults::where('test_result_code', $code)
-                    ->whereIn('status', ['pending', 'approved'])
-                    ->get();
+    $reports = TestResults::where('test_result_code', $code)
+        ->whereIn('status', ['pending', 'approved'])
+        ->get();
 
-                if ($reports->isEmpty()) {
-                    return response()->json(['success' => false, 'message' => 'Report not found or cannot be rejected.'], 404);
-                }
+    if ($reports->isEmpty()) {
+        return response()->json(['success' => false, 'message' => 'Report not found or cannot be rejected.'], 404);
+    }
 
-                foreach ($reports as $report) {
-                    $report->admin_approved = 0;
-                    // $report->admin_rejected_by = Auth::guard('master_admins')->id();
-                    // $report->admin_rejected_at = now();
-                    $report->status = 'rejected';
-                    $report->save();
-                }
+    foreach ($reports as $report) {
+        $report->admin_approved = 0;
+        $report->admin_rejected_by = Auth::guard('master_admins')->id();
+        $report->admin_rejected_at = now();
+        $report->rejection_reason = $request->reason; // ✅ save reason
+        $report->status = 'rejected';
+        $report->save();
+    }
 
-                return response()->json(['success' => true, 'message' => 'Report rejected successfully!']);
-            }
+    return response()->json(['success' => true, 'message' => 'Report rejected successfully!']);
+}
+
+// ✍️ Sign Report (only approved ones)
+public function signReport($code)
+{
+    $reports = TestResults::where('test_result_code', $code)
+        ->where('status', 'approved')
+        ->where('admin_approved', 1)
+        ->get();
+
+    if ($reports->isEmpty()) {
+        return response()->json(['success' => false, 'message' => 'Report not found or not eligible for signing.'], 404);
+    }
+
+    $adminId = Auth::guard('master_admins')->id();
+
+    foreach ($reports as $report) {
+        $report->signed_by_id = $adminId;
+        $report->signed_date = now();
+        $report->status = 'completed';
+        $report->save();
+    }
+
+    return response()->json(['success' => true, 'message' => 'Report signed and completed successfully!']);
+}
+
+// 🔁 Optional - Reopen Rejected Report
+public function reopenReport($code)
+{
+    $reports = TestResults::where('test_result_code', $code)
+        ->where('status', 'rejected')
+        ->get();
+
+    if ($reports->isEmpty()) {
+        return response()->json(['success' => false, 'message' => 'Report not found or not rejected.'], 404);
+    }
+
+    foreach ($reports as $report) {
+        $report->status = 'pending';
+        $report->rejection_reason = null;
+        $report->save();
+    }
+
+    return response()->json(['success' => true, 'message' => 'Report moved back to pending successfully!']);
+}
+
 
 
 

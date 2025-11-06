@@ -445,7 +445,7 @@
                 <label class="block text-gray-700 text-sm mb-2">
                 First Name<span class="text-red-500">*</span>
                 </label>
-                <input type="text" name="first_name" placeholder="Enter Pet Parent/Care Of Name"
+                <input type="text" name="first_name" placeholder="Enter First Name"
                 class="w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none">
             </div>
 
@@ -453,7 +453,7 @@
                 <label class="block text-gray-700 text-sm mb-2">
                 Last Name<span class="text-red-500">*</span>
                 </label>
-                <input type="text" name="last_name" placeholder="Enter Pet Name"
+                <input type="text" name="last_name" placeholder="Enter Last Name"
                 class="w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none">
             </div>
 

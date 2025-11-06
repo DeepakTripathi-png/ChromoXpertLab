@@ -14,7 +14,12 @@ class UserLoginController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'mobile' => 'required|digits:10|exists:users,mobile',
-        ]);
+        ],
+    [
+        'mobile.exists' => 'Mobile number is not registered.',
+        'mobile.digits' => 'Mobile number must be 10 digits.',
+        'mobile.required' => 'Please enter your mobile number.',
+    ]);
 
         if ($validator->fails()) {
             return response()->json(['status'=>'error','message'=>$validator->errors()->first()], 422);
@@ -100,7 +105,7 @@ class UserLoginController extends Controller
         ]);
 
         Auth::login($user);
-
+        //Auth::guard('petparent')->login($user);
         return response()->json([
             'status' => 'success',
             'message' => 'Login successful!',

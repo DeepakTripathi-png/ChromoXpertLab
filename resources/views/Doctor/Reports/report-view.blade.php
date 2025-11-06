@@ -97,9 +97,7 @@
                                 <i class="fas fa-pen-nib me-2"></i> Sign
                             </button>
                         @else
-                            <span class="badge bg-success fs-6 p-2 px-3 rounded-pill shadow-sm">
-                                <i class="fas fa-check-circle me-1"></i> Approved and Signed
-                            </span>
+                            
                         @endif
 
                     @elseif($report_status == "rejected")
@@ -134,12 +132,13 @@
                             data-bs-toggle="modal" data-bs-target="#animalInfoModal">
                         <i class="mdi mdi-paw me-2"></i> Animal info
                     </button>
-
-                    <a href="{{ url('doctor/generate-reports/'.$id) }}" 
-                    class="btn btn-light btn-lg fw-semibold rounded-pill shadow-sm edit-report"
-                    style="background: #007bff; color: #fff; border: none; text-decoration: none;">
-                        <i class="fas fa-edit me-2"></i> Edit
-                    </a>
+                    @if($report_status != "approved" && $report_status != "completed")
+                        <a href="{{ url('doctor/generate-reports/'.$id) }}" 
+                        class="btn btn-light btn-lg fw-semibold rounded-pill shadow-sm edit-report"
+                        style="background: #007bff; color: #fff; border: none; text-decoration: none;">
+                            <i class="fas fa-edit me-2"></i> Edit
+                        </a>
+                    @endif
                 </div>
 
 

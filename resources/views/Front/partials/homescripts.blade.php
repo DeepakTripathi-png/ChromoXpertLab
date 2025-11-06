@@ -2,8 +2,35 @@
 <script src="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"/>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-
+<script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
 <script>
+function showToast(message, type = 'info') {
+    let bgColor;
+
+    switch (type) {
+        case 'success':
+            bgColor = "#16a34a"; // green
+            break;
+        case 'error':
+            bgColor = "#dc2626"; // red
+            break;
+        case 'warning':
+            bgColor = "#f59e0b"; // amber
+            break;
+        default:
+            bgColor = "#3b82f6"; // blue (info)
+    }
+
+    Toastify({
+        text: message,
+        duration: 3000,
+        gravity: "bottom", // top or bottom
+        position: "right", // left, center or right
+        backgroundColor: bgColor,
+        stopOnFocus: true,
+        close: true, // adds a close (×) icon
+    }).showToast();
+}    
 document.addEventListener("DOMContentLoaded", async () => {
 
     /* ==============================
@@ -262,7 +289,72 @@ document.addEventListener("DOMContentLoaded", async () => {
             document.body.classList.remove('overflow-hidden');
         }
     });
+    /* ADD To Cart Functionality */
+        window.updateCartCount = function(count, addedIds = []) {
+            const cartBadges = [
+                document.getElementById('cart-count-desktop'),
+                document.getElementById('cart-count-mobile')
+            ];
 
+            cartBadges.forEach(el => {
+                if (!el) return;
+                el.textContent = count;
+                el.style.opacity = count > 0 ? '1' : '0';
+            });
+
+            addedIds.forEach(id => {
+                const btn = document.querySelector(`.add-to-cart[data-id="${id}"]`);
+                if (btn) {
+                    btn.textContent = '✅ Added';
+                    btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                    btn.classList.add('bg-green-600', 'cursor-default');
+                    btn.disabled = true;
+                }
+            });
+        }
+        async function addToCart(testId) {
+            try {
+                const res = await fetch('/front/add-to-cart', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify({ test_id: testId })
+                });
+
+                const data = await res.json();
+
+                // ✅ Get the clicked button
+                const button = document.querySelector(`.add-to-cart[data-id="${testId}"]`);
+
+                if (data.success) {
+                    updateCartCount(data.cartCount);
+                    showToast('Test added to cart successfully!', 'success');
+
+                    // ✅ Change button text to "Added"
+                    if (button) {
+                        button.textContent = '✅ Added';
+                        button.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                        button.classList.add('bg-green-600', 'cursor-default');
+                        button.disabled = true; // optional (prevents multiple adds)
+                    }
+                } else {
+                    showToast(data.message || 'Failed to add test to cart!', 'error');
+                }
+            } catch (error) {
+                console.error('Add to cart error:', error);
+            }
+        }
+        try {
+            const res = await fetch('/front/cart-count');
+            const data = await res.json();
+            updateCartCount(data.cartCount, data.testIds || []);
+        } catch (error) {
+            console.error('Error fetching cart count:', error);
+        }
+        
+    /* END OF Add To Cart Functionality */
     
     /* ==============================
        5️⃣ SERVICE SLIDER
@@ -337,7 +429,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             const response = await fetch("{{ route('front.sendOtp') }}", {
                 method: "POST",
                 headers: {
-                    "X-CSRF-TOKEN": document.querySelector('input[name=_token]').value,
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({ mobile })
@@ -422,7 +514,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             const response = await fetch("{{ route('front.verifyOtp') }}", {
                 method: "POST",
                 headers: {
-                    "X-CSRF-TOKEN": document.querySelector('input[name=_token]').value,
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({ mobile, otp })
@@ -452,62 +544,88 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     /* Start Smooth Behaviour of SPA Link from Another Pages */
-    if (window.location.pathname === '/' || window.location.pathname === '/index') {
+    const scrollToSection = () => {
         const section = localStorage.getItem('scrollToSection');
-        if (section) {
-            window.addEventListener('load', () => {
-                const target = document.getElementById(section);
-                if (target) {
-                    // Wait a bit for layout/images to load
-                    setTimeout(() => {
-                        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }, 400);
-                }
-                localStorage.removeItem('scrollToSection');
-            });
-        }
-    }
-    /* End Smooth Behaviour of SPA Link from Another Pages */
-    /* Sign Up Form Submitt */
-    document.getElementById('signup-form').addEventListener('submit', async function(e){
-        e.preventDefault();
-        const form = e.target;
-        const data = new FormData(form);
-        const messageBox = document.getElementById('signup-message');
-        // Reset previous messages
-        messageBox.className = "hidden mb-4 text-center text-sm font-medium";
-        messageBox.textContent = "";
-        try {
-            const response = await fetch("{{ route('front.register') }}", {
-                method: "POST",
-                headers: {
-                    "X-CSRF-TOKEN": document.querySelector('input[name=_token]').value
-                },
-                body: data
-            });
-            const result = await response.json();
-            if (result.status === 'success') {
-                // ✅ Show success message
-                messageBox.textContent = result.message;
-                messageBox.className = "mb-4 text-center text-sm font-medium text-green-600";
-                form.reset();
+        if (!section) return;
 
-                // Close modal after a short delay
-                setTimeout(() => {
-                    document.getElementById('signup-modal').classList.add('hidden');
-                }, 1500);
+        let attempts = 0;
+        const maxAttempts = 50; // ~10 seconds retry
+        const interval = 200; // retry every 200ms
 
-            } else if (result.status === 'error') {
-                // ❌ Show error message
-                messageBox.textContent = result.message || 'Something went wrong. Please try again.';
-                messageBox.className = "mb-4 text-center text-sm font-medium text-red-600";
+        const tryScroll = () => {
+            const target = document.getElementById(section);
+            if (target) {
+                const headerOffset = document.querySelector('header')?.offsetHeight || 0;
+                const offsetPosition = target.getBoundingClientRect().top + window.pageYOffset - headerOffset;
+
+                window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+                console.log("✅ Scrolled to:", section);
+
+                localStorage.removeItem('scrollToSection'); // remove after success
+            } else if (attempts < maxAttempts) {
+                attempts++;
+                setTimeout(tryScroll, interval);
+            } else {
+                console.warn("❌ Section not found:", section);
+                localStorage.removeItem('scrollToSection'); // avoid infinite retry
             }
-        } catch (error) {
-            // ⚠️ Handle fetch/network errors
-            messageBox.textContent = 'Network error. Please check your connection.';
-            messageBox.className = "mb-4 text-center text-sm font-medium text-red-600";
+        };
+
+        setTimeout(tryScroll, 200); // initial delay for DOM content
+    };
+    if (window.location.pathname === '/' || window.location.pathname === '/index') {
+        scrollToSection();
+    }
+    window.addEventListener('load', () => {
+        if (window.location.pathname === '/' || window.location.pathname === '/index') {
+            scrollToSection();
         }
     });
+    /* End Smooth Behaviour of SPA Link from Another Pages */
+    /* Sign Up Form Submitt */
+    const signupForm = document.getElementById('signup-form');
+    if (signupForm) {
+        signupForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const form = e.target;
+            const data = new FormData(form);
+            const messageBox = document.getElementById('signup-message');
+            // Reset previous messages
+            messageBox.className = "hidden mb-4 text-center text-sm font-medium";
+            messageBox.textContent = "";
+            try {
+                const response = await fetch("{{ route('front.register') }}", {
+                    method: "POST",
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: data
+                });
+                const result = await response.json();
+                if (result.status === 'success') {
+                    // ✅ Show success message
+                    messageBox.textContent = result.message;
+                    messageBox.className = "mb-4 text-center text-sm font-medium text-green-600";
+                    form.reset();
+
+                    // Close modal after a short delay
+                    setTimeout(() => {
+                        document.getElementById('signup-modal').classList.add('hidden');
+                    }, 1500);
+
+                } else if (result.status === 'error') {
+                    // ❌ Show error message
+                    messageBox.textContent = result.message || 'Something went wrong. Please try again.';
+                    messageBox.className = "mb-4 text-center text-sm font-medium text-red-600";
+                }
+            } catch (error) {
+                // ⚠️ Handle fetch/network errors
+                messageBox.textContent = 'Network error. Please check your connection.';
+                messageBox.className = "mb-4 text-center text-sm font-medium text-red-600";
+            }
+        });
+    }
+
     /* Resend OTP Form Submit*/
     const resendOtpBtn = document.getElementById('resend-otp');
     resendOtpBtn?.addEventListener('click', async () => {
@@ -539,7 +657,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             const response = await fetch("{{ route('front.resendOtp') }}", {
                 method: "POST",
                 headers: {
-                    "X-CSRF-TOKEN": document.querySelector('input[name=_token]').value,
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({ mobile })

@@ -22,7 +22,7 @@
                 </div>
             </div>
 
-            {{-- Show rejection reason if report is rejected --}}
+            {{-- Show rejection reason --}}
             @php
                 $status = $report->first()?->status ?? '';
                 $reason = $report->first()?->rejection_reason ?? '';
@@ -35,9 +35,6 @@
 
             {{-- Controls --}}
             <div class="mt-4 mb-3">
-                <span class="text-secondary fw-semibold d-block mb-2">
-                    Select tests and cultures to be printed in the report
-                </span>
                 <div class="d-flex flex-wrap gap-2">
                     <button class="btn btn-light btn-lg fw-semibold rounded-pill shadow-sm"
                             style="background: #28a745; color: #fff; border: none;"
@@ -49,32 +46,43 @@
                             onclick="selectAllTests(false)">
                         <i class="fas fa-times me-2"></i> Deselect all
                     </button>
+
+                    {{-- ✅ Working Print Button --}}
                     <button class="btn btn-light btn-lg fw-semibold rounded-pill shadow-sm print-report"
                             style="background: #f6b51d; color: #1f2937; border: none;">
                         <i class="fas fa-print me-2"></i> Print
                     </button>
-                    <button id="animalInfo" class="btn btn-light btn-lg fw-semibold rounded-pill shadow-sm ms-2"
+
+                    <button id="animalInfo" class="btn btn-light btn-lg fw-semibold rounded-pill shadow-sm"
                             style="background: #cc235e; color: #fff; border: none;"
                             data-bs-toggle="modal" data-bs-target="#animalInfoModal">
                         <i class="mdi mdi-paw me-2"></i> Animal info
                     </button>
 
-                    {{-- ✅ Action Buttons with data-id --}}
+                    {{-- ✅ Action Buttons --}}
+                    <a href="{{ route('reports.generate', $id) }}" 
+                       class="btn btn-light btn-lg fw-semibold rounded-pill shadow-sm"
+                       style="background: #ffc107; color: #1f2937; border: none;">
+                       <i class="fas fa-edit me-2"></i> Edit
+                    </a>
+
                     <button class="btn btn-light btn-lg fw-semibold rounded-pill shadow-sm approve-btn"
                             data-id="{{ $id }}"
                             style="background: #28a745; color: #fff; border: none;">
                         <i class="fas fa-check-circle me-2"></i> Approve
                     </button>
+
                     <button class="btn btn-light btn-lg fw-semibold rounded-pill shadow-sm reject-btn"
                             data-id="{{ $id }}"
                             style="background: #dc3545; color: #fff; border: none;">
                         <i class="fas fa-times-circle me-2"></i> Reject
                     </button>
-                    <button class="btn btn-light btn-lg fw-semibold rounded-pill shadow-sm sign-btn"
+
+                    {{-- <button class="btn btn-light btn-lg fw-semibold rounded-pill shadow-sm sign-btn"
                             data-id="{{ $id }}"
                             style="background: #0d6efd; color: #fff; border: none;">
                         <i class="fas fa-signature me-2"></i> Sign
-                    </button>
+                    </button> --}}
                 </div>
             </div>
 
@@ -86,7 +94,7 @@
 
             <div id="testContainer">
                 @if(!empty($tests))
-                    @foreach($tests as $index => $test)
+                    @foreach($tests as $test)
                         @php
                             $testResult = $report->where('test_id', $test->id)->first();
                         @endphp
@@ -97,8 +105,9 @@
                                     {{ $test->name ?? 'Test Name' }}
                                 </label>
                                 <div class="controls">
-                                    <button class="toggle-btn" onclick="toggleDrawer(this)">+</button>
-                                    <button class="close-btn" onclick="removeTest('test{{ $test->id }}')">×</button>
+                                    <button class="toggle-btn shadow-sm" onclick="toggleDrawer(this)">
+                                        <i class="mdi mdi-chevron-down"></i>
+                                    </button>
                                 </div>
                             </div>
                             <div class="test-content">
@@ -115,13 +124,7 @@
                                     </thead>
                                     <tbody>
                                         @forelse($test->parameters as $parameter)
-                                            @if($parameter->row_type === 'title')
-                                                <tr>
-                                                    <td colspan="5" style="text-align: left; font-weight: bold;">
-                                                        {{ $parameter->title ?? $parameter->name ?? 'Parameter Title' }}
-                                                    </td>
-                                                </tr>
-                                            @elseif($parameter->row_type === 'component')
+                                            @if($parameter->row_type === 'component')
                                                 @php
                                                     $component = $testResult?->components->where('component_id', $parameter->id)->first();
                                                 @endphp
@@ -135,9 +138,7 @@
                                             @endif
                                         @empty
                                             <tr>
-                                                <td colspan="5" class="text-center text-muted">
-                                                    No parameters found
-                                                </td>
+                                                <td colspan="5" class="text-center text-muted">No parameters found</td>
                                             </tr>
                                         @endforelse
                                     </tbody>
@@ -152,100 +153,271 @@
     </div>
 </div>
 
-{{-- Animal Info Modal --}}
-@include('Admin.Reports.partials.animal-info-modal', ['appointment' => $appointment])
+{{-- ✅ Animal Info Modal --}}
+<div class="modal fade" id="animalInfoModal" tabindex="-1" aria-labelledby="animalInfoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4" style="background: rgba(255,255,255,0.85); backdrop-filter: blur(14px);">
+            <div class="modal-header" style="background: linear-gradient(135deg, #6267ae 0%, #cc235e 100%); color: #fff;">
+                <h5 class="modal-title" id="animalInfoModalLabel">Animal Info</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p><strong>Name:</strong> {{ $appointment->pet->name ?? 'N/A' }}</p>
+                <p><strong>Gender:</strong> {{ $appointment->pet->gender ?? 'N/A' }}</p>
+                <p><strong>Age:</strong> {{ $appointment->pet->age ?? 'N/A' }}</p>
+                <p><strong>Owner Name:</strong> {{ $appointment->pet->petparent->name ?? 'N/A' }}</p>
+                <p><strong>Phone:</strong> {{ $appointment->pet->petparent->mobile ?? 'N/A' }}</p>
+                <p><strong>Email:</strong> {{ $appointment->pet->petparent->email ?? 'N/A' }}</p>
+                <p><strong>Address:</strong> {{ $appointment->pet->petparent->address ?? 'N/A' }}</p>
+            </div>
+        </div>
+    </div>
+</div>
 
-{{-- Styles (unchanged) --}}
-<style>/* (Keep your existing styles here) */</style>
+{{-- ✅ Rejection Modal (Doctor Style) --}}
+<div class="modal fade" id="rejectionModal" tabindex="-1" aria-labelledby="rejectionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 shadow-lg border-0">
+            <div class="modal-header" style="background: linear-gradient(135deg, #6267ae 0%, #cc235e 100%); color: #fff;">
+                <h5 class="modal-title fw-bold" id="rejectionModalLabel">Reject Report</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="rejectionForm">
+                @csrf
+                <div class="modal-body p-4">
+                    <input type="hidden" id="rejectReportCode" name="report_code">
+                    <div class="mb-3">
+                        <label for="rejectionReason" class="form-label fw-semibold" style="color:#6267ae;">Enter Rejection Reason</label>
+                        <textarea id="rejectionReason" name="reason" class="form-control rounded-3 shadow-sm" rows="4" placeholder="Enter reason..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer d-flex justify-content-between">
+                    <button type="button" class="btn btn-secondary rounded-pill px-4 shadow-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger rounded-pill px-4 shadow-sm">Reject</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.test-item {
+    border: 2px solid #ac7fb6;
+    margin-bottom: 15px;
+    padding: 10px 15px;
+    border-radius: 1rem;
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(14px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+.test-item:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+.toggle-btn {
+    background: linear-gradient(135deg, #6267ae 0%, #cc235e 100%);
+    color: #fff; border: none; border-radius: 50%; width: 38px; height: 38px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 18px; cursor: pointer; transition: all 0.3s ease;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+.toggle-btn:hover {
+    transform: scale(1.1);
+    background: linear-gradient(135deg, #cc235e 0%, #f6b51d 100%);
+    box-shadow: 0 3px 8px rgba(0,0,0,0.25);
+}
+.test-item.open .toggle-btn i {
+    transform: rotate(180deg); transition: transform 0.3s ease;
+}
+.test-content { display: none; }
+.test-item.open .test-content { display: block; }
+.comment { color: #6267ae; font-style: italic; font-size: 0.9rem; background: rgba(172,127,182,0.1); border-radius: .5rem; padding: 8px; }
+
+textarea:focus {
+    outline: none;
+    border-color: #6267ae !important;
+    box-shadow: 0 0 0 3px rgba(98,103,174,0.3) !important;
+}
+</style>
 @endsection
 
 @section('scripts')
-{{-- ✅ Include SweetAlert2 --}}
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
 <script>
-    function toggleDrawer(button) {
-        const testItem = button.closest('.test-item');
-        testItem.classList.toggle('open');
-        button.textContent = testItem.classList.contains('open') ? '−' : '+';
-    }
+function toggleDrawer(button) {
+    const testItem = button.closest('.test-item');
+    testItem.classList.toggle('open');
+    const icon = button.querySelector('i');
+    icon.classList.toggle('mdi-chevron-down');
+    icon.classList.toggle('mdi-chevron-up');
+}
 
-    function removeTest(id) {
-        document.getElementById(id)?.remove();
-    }
+function selectAllTests(check) {
+    document.querySelectorAll('#testContainer .test-checkbox').forEach(cb => cb.checked = check);
+}
 
-    function selectAllTests(check) {
-        document.querySelectorAll('#testContainer .test-checkbox').forEach(cb => cb.checked = check);
-    }
+// Function to download reports
+function downloadReports(reports) {
+    reports.forEach(report => {
+        try {
+            const link = document.createElement('a');
+            link.href = 'data:application/pdf;base64,' + report.content;
+            link.download = report.filename || 'report.pdf';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } catch (error) {
+            console.error('Error downloading report:', error);
+            showToast('error', 'Failed to download report.');
+        }
+    });
+}
 
-    // ✅ Sign Report
-    $(document).on('click', '.sign-btn', function() {
-        const code = $(this).data('id');
-        Swal.fire({
-            title: 'Sign Report?',
-            text: 'Once signed, report will be marked as completed.',
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: 'Yes, Sign',
-            confirmButtonColor: '#0d6efd',
-            cancelButtonColor: '#6c757d'
-        }).then(result => {
-            if (result.isConfirmed) {
-                $.post(`/admin/reports/sign/${code}`, { _token: $('meta[name="csrf-token"]').attr('content') })
-                    .done(res => { toastr.success(res.message); })
-                    .fail(err => toastr.error(err.responseJSON?.message || 'Sign failed.'));
+// Placeholder toast function (replace with actual implementation)
+function showToast(type, message) {
+    // Assuming toastr is available, or fallback to alert
+    if (type === 'error') {
+        if (typeof toastr !== 'undefined') {
+            toastr.error(message);
+        } else {
+            alert(message); // Fallback
+        }
+    } else if (type === 'success') {
+        if (typeof toastr !== 'undefined') {
+            toastr.success(message);
+        } else {
+            alert(message); // Fallback
+        }
+    }
+}
+
+// ✅ Updated Print Functionality (Same as Branch Logic)
+const printBtn = document.querySelector('.print-report');
+if (printBtn && !printBtn.dataset.bound) {
+    printBtn.addEventListener('click', function () {
+        const selectedTestResults = Array.from(document.querySelectorAll('#testContainer .test-checkbox:checked'))
+            .map(checkbox => checkbox.closest('.test-item').dataset.testResultId)
+            .filter(id => id);
+
+        if (selectedTestResults.length === 0) {
+            showToast('error', 'Please select at least one test to print the report.');
+            return;
+        }
+
+        console.log('Selected Test Result IDs:', selectedTestResults);
+
+        $.ajax({
+            url: '{{ route("reports.pdf") }}', // Adjust route name as per your admin PDF generation route
+            method: 'POST',
+            data: {
+                selected_test_results: selectedTestResults,
+                _token: $('meta[name="csrf-token"]').attr('content')
+            },
+            beforeSend: () => {
+                printBtn.disabled = true;
+                printBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Generating...';
+            },
+            success: function (response) {
+                console.log('AJAX Success:', response);
+                if (response.reports && Array.isArray(response.reports) && response.reports.length > 0) {
+                    downloadReports(response.reports);
+                    showToast('success', 'Report generated successfully. Check your downloads.');
+                } else {
+                    showToast('error', 'No reports generated. Please try again.');
+                }
+            },
+            error: function (xhr) {
+                console.error('AJAX Error:', xhr.responseText);
+                let errorMessage = 'Failed to generate the report. Please try again.';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                }
+                showToast('error', errorMessage);
+            },
+            complete: () => {
+                printBtn.disabled = false;
+                printBtn.innerHTML = '<i class="fas fa-print me-2"></i> Print';
             }
         });
     });
+
+    printBtn.dataset.bound = 'true';
+}
+
+$(document).ready(function() {
+
+    // ✅ To prevent multiple bindings — always clear old ones first
+    $(document).off('click', '.approve-btn')
+                .off('click', '.reject-btn')
+                .off('click', '.sign-btn')
+                .off('click', '.reapprove-btn');
 
     // ✅ Approve Report
-    $(document).on('click', '.approve-btn', function() {
+    $(document).on('click', '.approve-btn', function(e) {
+        e.preventDefault();
         const code = $(this).data('id');
-        Swal.fire({
-            title: 'Approve Report?',
-            text: 'This will mark the report as approved.',
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: 'Approve',
-            confirmButtonColor: '#28a745',
-            cancelButtonColor: '#6c757d'
-        }).then(result => {
-            if (result.isConfirmed) {
-                $.post(`/admin/reports/approve/${code}`, { _token: $('meta[name="csrf-token"]').attr('content') })
-                    .done(res => { toastr.success(res.message); })
-                    .fail(err => toastr.error(err.responseJSON?.message || 'Approval failed.'));
-            }
+        if (!confirm('Approve this report?')) return;
+        $.post(`/admin/reports/approve/${code}`, {
+            _token: $('meta[name="csrf-token"]').attr('content')
+        }).done(res => {
+            toastr.success(res.message);
+            window.location.reload(); // Reload page to reflect changes
+        }).fail(() => toastr.error('Approval failed.'));
+    });
+
+    // ✅ Reject Report (Open modal)
+    $(document).on('click', '.reject-btn', function(e) {
+        e.preventDefault();
+        const code = $(this).data('id');
+        $('#rejectReportCode').val(code);
+        $('#rejectionModal').modal('show');
+    });
+
+    // ✅ Submit Rejection
+    $('#rejectionForm').off('submit').on('submit', function(e) {
+        e.preventDefault();
+        const code = $('#rejectReportCode').val();
+        const reason = $('#rejectionReason').val().trim();
+        if (!reason) return toastr.error('Please enter a reason.');
+        $.ajax({
+            url: `/admin/reports/reject/${code}`,
+            type: 'POST',
+            data: { _token: $('meta[name="csrf-token"]').attr('content'), reason },
+            success: res => {
+                toastr.warning(res.message);
+                $('#rejectionModal').modal('hide');
+                window.location.reload(); // Reload page to reflect changes
+            },
+            error: () => toastr.error('Rejection failed.')
         });
     });
 
-    // ❌ Reject Report (with reason)
-    $(document).on('click', '.reject-btn', function() {
-        const code = $(this).data('id');
-        Swal.fire({
-            title: 'Reject Report',
-            input: 'textarea',
-            inputLabel: 'Enter rejection reason',
-            inputPlaceholder: 'Type reason here...',
-            showCancelButton: true,
-            confirmButtonText: 'Reject',
-            confirmButtonColor: '#dc3545',
-            cancelButtonColor: '#6c757d',
-            preConfirm: (reason) => {
-                if (!reason) {
-                    Swal.showValidationMessage('Please enter a rejection reason.');
-                }
-                return reason;
-            }
-        }).then(result => {
-            if (result.isConfirmed) {
-                $.post(`/admin/reports/reject/${code}`, {
-                    _token: $('meta[name="csrf-token"]').attr('content'),
-                    reason: result.value
-                })
-                .done(res => { toastr.warning(res.message); })
-                .fail(err => toastr.error(err.responseJSON?.message || 'Rejection failed.'));
-            }
-        });
+    // ✅ Clear modal on close
+    $('#rejectionModal').on('hidden.bs.modal', function() {
+        $('#rejectionForm')[0].reset();
+        $('#rejectReportCode').val('');
     });
+
+    // ✅ Sign Report
+    $(document).on('click', '.sign-btn', function(e) {
+        e.preventDefault();
+        const code = $(this).data('id');
+        if (!confirm('Sign this report?')) return;
+        $.post(`/admin/reports/sign/${code}`, { 
+            _token: $('meta[name="csrf-token"]').attr('content') 
+        })
+        .done(() => { toastr.success('Signed!'); window.location.reload(); })
+        .fail(() => toastr.error('Sign failed.'));
+    });
+
+    // ✅ Re-Approve Report
+    $(document).on('click', '.reapprove-btn', function(e) {
+        e.preventDefault();
+        const code = $(this).data('id');
+        if (!confirm('Re-approve this report?')) return;
+        $.post(`/admin/reports/reopen/${code}`, { 
+            _token: $('meta[name="csrf-token"]').attr('content') 
+        })
+        .done(res => { toastr.success(res.message); window.location.reload(); })
+        .fail(() => toastr.error('Failed to re-approve.'));
+    });
+
+});
 </script>
 @endsection

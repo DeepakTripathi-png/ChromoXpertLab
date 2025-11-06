@@ -286,20 +286,22 @@ class BranchReportController extends Controller
                     return $row->assigned_doctor ?? 'Not Assigned';
                 })
 
+
                 ->addColumn('action', function ($row) {
                     $actionBtn = '';
                     $id = $row->test_result_code; 
 
 
                       // Assign Doctor button
-                 
-                    $actionBtn .= '<button type="button" 
-                                            class="btn btn-icon btn-secondary assign-doctor-btn me-1"
-                                            title="Assign Doctor" 
-                                            data-id="' . $id . '"
-                                            style="background:#fff; color:#6f42c1; border:1px solid #6f42c1;">
-                                            <i class="mdi mdi-account-plus"></i>
-                                        </button>';
+                    if($row->status != 'completed' && $row->status != 'approved') {
+                        $actionBtn .= '<button type="button" 
+                                                class="btn btn-icon btn-secondary assign-doctor-btn me-1"
+                                                title="Assign Doctor" 
+                                                data-id="' . $id . '"
+                                                style="background:#fff; color:#6f42c1; border:1px solid #6f42c1;">
+                                                <i class="mdi mdi-account-plus"></i>
+                                            </button>';
+                    }                    
                     
 
                     // View button
@@ -311,6 +313,8 @@ class BranchReportController extends Controller
                                 <i class="mdi mdi-eye"></i>
                             </a>';
 
+                    if($row->status != 'completed' && $row->status != 'approved') {
+                   
                     // Edit button
                     $actionBtn .= '<a href="' . url('branch/generate-reports/' . $id) . '" 
                                     class="btn btn-icon btn-warning me-1" 
@@ -319,14 +323,17 @@ class BranchReportController extends Controller
                                     style="background:#fff; color:#f6b51d; border:1px solid #f6b51d;">
                                     <i class="mdi mdi-pencil"></i>
                                 </a>';
+                    }            
 
                     // Sign Report button
-                    $actionBtn .= '<a href="' . url('branch/test-report/sign/' . $id) . '" 
-                                    class="btn btn-icon btn-success me-1" 
-                                    title="Sign Report" 
-                                    style="background:#fff; color:#28a745; border:1px solid #28a745;">
-                                    <i class="mdi mdi-signature-text"></i>
-                                </a>';
+                        // $actionBtn .= '<a href="' . url('branch/test-report/sign/' . $id) . '" 
+                        //                 class="btn btn-icon btn-success me-1" 
+                        //                 title="Sign Report" 
+                        //                 style="background:#fff; color:#28a745; border:1px solid #28a745;">
+                        //                 <i class="mdi mdi-signature-text"></i>
+                        //             </a>';
+
+                        
 
                     // Print Barcode button
                     $actionBtn .= '<a href="' . url('branch/test-report/barcode/' . $id) . '" 

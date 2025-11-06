@@ -128,4 +128,12 @@ class SampleCollection extends Model
 
         return $badges[$this->status] ?? 'secondary';
     }
+
+
+    public function logs()
+    {
+        return $this->hasMany(SampleStatusLog::class, 'sample_id');
+    }
+
+
 }

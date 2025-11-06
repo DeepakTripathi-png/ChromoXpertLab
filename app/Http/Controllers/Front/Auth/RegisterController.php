@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Front\Auth;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\User;
-use App\Models\PetParent;
+use App\Models\Petparent;
 use Illuminate\Support\Facades\Validator; 
 use Illuminate\Support\Facades\Hash;
 

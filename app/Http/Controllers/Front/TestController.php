@@ -10,7 +10,13 @@ class TestController extends Controller
     public function index()
     {
         try {
-            $tests = Test::where('status', 'active')->get();
+            //$tests = Test::where('status', 'active')->get();
+            $tests = Test::where('status', 'active')
+            ->with([
+                'parameters.options', 
+                'department'         
+            ])
+            ->get();
             return response()->json($tests);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Server Error'], 500);

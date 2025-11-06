@@ -255,13 +255,15 @@ class DoctorReportController extends Controller
                             </a>';
 
                     // Edit button (for assigned reports)
-                    $actionBtn .= '<a href="' . url('doctor/generate-reports/' . $id) . '" 
-                                    class="btn btn-icon btn-warning me-1" 
-                                    title="Edit Report" 
-                                    data-bs-toggle="tooltip" 
-                                    style="background:#fff; color:#f6b51d; border:1px solid #f6b51d;">
-                                    <i class="mdi mdi-pencil"></i>
-                                </a>';
+                    if($row->status != 'completed' && $row->status != 'approved') {
+                        $actionBtn .= '<a href="' . url('doctor/generate-reports/' . $id) . '" 
+                                        class="btn btn-icon btn-warning me-1" 
+                                        title="Edit Report" 
+                                        data-bs-toggle="tooltip" 
+                                        style="background:#fff; color:#f6b51d; border:1px solid #f6b51d;">
+                                        <i class="mdi mdi-pencil"></i>
+                                    </a>';
+                    }            
 
                     // Approve/Reject buttons (assuming approve sets status to 'approved', reject to 'rejected')
                     // $actionBtn .= '<button type="button" 

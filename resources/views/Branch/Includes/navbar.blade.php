@@ -186,6 +186,8 @@
 {{-- Sidebar --}}
 @php
 $role_id = Auth::guard('branch')->user()->role_id ?? null;
+$user = Auth::guard('branch')->user()?? null;
+$branch = App\Models\Branch::where('user_id', $user->id)->first();
 $RolesPrivileges = null;
 if ($role_id) {
     $RolesPrivileges = App\Models\Master\Role_privilege::where('status', 'active')->where('id', $role_id)->select('privileges')->first();
@@ -279,6 +281,7 @@ if ($role_id) {
                     @endif
 
                     {{-- System Users --}}
+                    @if(!empty($branch) && $branch->type == 'branch')
                     @if(!empty($RolesPrivileges) && str_contains($RolesPrivileges->privileges, 'system_users_view'))
                     <li class="{{ Request::is('branch/system-user*', 'branch/roles-privileges*') ? 'active' : '' }}">
                         <a href="#system-user" data-bs-toggle="collapse" 
@@ -306,6 +309,7 @@ if ($role_id) {
                             </ul>
                         </div>
                     </li>
+                    @endif
                     @endif
 
                     {{-- Logout --}}
